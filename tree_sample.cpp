@@ -11,11 +11,13 @@ struct node_t {
     :data(_data)
     ,left(NULL)
     ,right(NULL)
+    ,count(1) 
   {}
 
   data_t data;
   node_t *left;
   node_t *right;
+  size_t count;
   //node_t *parent;
 };
 
@@ -38,6 +40,46 @@ node_t *tree_add(node_t *root, node_t *new_node) {
       //std::cout <<"VALUE["<< curr->data << "] ->" << ((*next == curr->left) ? "L" : "R") << std::endl;
       curr = *next;
     }
+  }
+}
+
+size_t calc_tree_size(node_t *root) {
+  if (root == NULL) { return 0; }
+  return root->count;
+}
+void split(node_t *root, const data_t &data, node_t **left, node_t **right) {
+  std::cout << "SPLIT: (" << data << ") cnt:: " << calc_tree_size(root)  << "" << std::endl;
+  if (root == NULL) {
+    *left = NULL;
+    *right = NULL;
+    return;
+  }
+  if (root->data <= data) {
+    *left = root;
+    split(root->right, data, &root->right, right);
+    (*left)->count = 1 + calc_tree_size((*left)->left) + calc_tree_size((*left)->right);
+  } else {
+    *right = root;
+    split(root->left, data, left, &root->left);
+    (*right)->count = 1 + calc_tree_size((*right)->left) + calc_tree_size((*right)->right);
+  }
+}
+
+node_t *tree_add_rnd(node_t *root, node_t *new_node) {
+  std::cout << "tree_add_rnd " << new_node->data << std::endl;
+  if (root == NULL) return new_node; 
+
+  if ( rand() % (calc_tree_size(root) + 1) == 0) {
+    split(root, new_node->data, &new_node->left, &new_node->right);
+    new_node->count = 1 + calc_tree_size(new_node->left), calc_tree_size(new_node->right);
+    return new_node;
+  } else {
+    if (new_node->data <= root->data) {
+      root->left = tree_add_rnd(root->left, new_node);
+    } else {
+      root->right = tree_add_rnd(root->right, new_node);
+    }
+    return root;
   }
 }
 
@@ -134,16 +176,20 @@ size_t tree_height(node_t *root) {
 }
 
 int main() {
+  //std::cout  << "PID: " << getpid() << std::endl; 
+  srand(getpid());
   char *buff[1024];
-  
+   
   node_t *root = NULL;
   while(std::cin.good()) {
     std::string line;
     int value = std::getline(std::cin, line);
     if (value == 0) break; 
-    //std::cout << "[" << line << "]{" << value << "}\n";
 
-    root = tree_add(root, new node_t(line));
+    //root = tree_add(root, new node_t(line));
+    root = tree_add_rnd(root, new node_t(line));
+
+    std::cout << "[" << line << "]{" << value << "} count: {" << calc_tree_size(root) <<"}\n";
   }
 
   //inorder_traverse(root);
